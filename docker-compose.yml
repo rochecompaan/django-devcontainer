@@ -1,0 +1,49 @@
+version: '3.7'
+volumes:
+  local_postgres_data: {}
+  local_postgres_data_backups: {}
+services:
+  db:
+    image: 'postgres:12.2'
+    volumes:
+      - 'local_postgres_data:/var/lib/postgresql/data'
+      - 'local_postgres_data_backups:/backups'
+    env_file:
+      - local/environment
+  django:
+    image: 'devcontainer_local_django:dev'
+    command: 'python django_app/manage.py runserver_plus 0.0.0.0:8000'
+    volumes:
+      - '.:/app/src:z'
+    env_file:
+      - local/environment
+    depends_on:
+      - migrate
+      - mailhog
+      - celeryworker
+  migrate:
+    build:
+      context: .
+      args:
+        DEVEL: 'yes'
+    image: 'devcontainer_local_django:dev'
+    command: python django_app/manage.py migrate
+    volumes:
+      - '.:/app/src:z'
+    env_file:
+      - local/environment
+    depends_on:
+      - db
+  celeryworker:
+    image: 'devcontainer_local_django:dev'
+    command: celery -A django_app worker -E -l info
+    volumes:
+      - '.:/app/src:z'
+    env_file:
+      - local/environment
+    depends_on:
+      - redis
+  mailhog:
+    image: 'mailhog/mailhog:v1.0.0'
+  redis:
+    image: 'redis:latest'
