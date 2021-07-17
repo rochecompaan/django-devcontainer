@@ -36,7 +36,8 @@ services:
       - db
   celeryworker:
     image: 'devcontainer_local_django:dev'
-    command: celery -A django_app worker -E -l info
+    working_dir: /app/src/django_app
+    command: celery -A config.celery_app worker -l info
     volumes:
       - '.:/app/src:z'
     env_file:
